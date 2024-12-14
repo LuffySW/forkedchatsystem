@@ -1,12 +1,8 @@
-Client connected: adil
-Client connected: akbar
-[akbar]: hallo
-[adil]: /msg <username> <pesan>
-[adil]: /msg akbar halloo
-[akbar]: /msg dill hallo dil
-[akbar]: hallo
-Client connected: akbar
-[akbar]: hallo 
-Client connected: dil
-[dil]: /msg akbar hallo
-[akbar]: ÿôÿý
+[INFO] [Server]: luffy has joined the chat.
+
+[INFO] [Server]: adill has joined the chat.
+
+[CHAT] luffy: hello
+
+[CHAT] adill: oyy
+
