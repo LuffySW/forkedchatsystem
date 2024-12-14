@@ -5,48 +5,48 @@
 #include <arpa/inet.h>
 #include <sys/select.h>
 
-#define PORT 8001
+#define PORT 8080
 #define BUFFER_SIZE 1024
 
 int main() {
     int sock = 0;
     struct sockaddr_in serv_addr;
     char buffer[BUFFER_SIZE] = {0};
+    char username[50];
     fd_set read_fds;
 
-    // Buat socket
+    // Membuat socket
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        perror("Socket creation error");
+        printf("\n Socket creation error \n");
         return -1;
     }
 
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(PORT);
 
-    // Konversi alamat IP dari teks ke biner
+    // Konversi alamat IP ke binary
     if (inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) <= 0) {
-        perror("Invalid address/ Address not supported");
+        printf("\nInvalid address/ Address not supported \n");
         return -1;
     }
 
-    // Hubungkan ke server
+    // Terhubung ke server
     if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-        perror("Connection Failed");
+        printf("\nConnection Failed \n");
         return -1;
     }
 
-    printf("Connected to server\n");
+    printf("Connected to the server.\n");
 
+    // Meminta username
     printf("Enter your username: ");
-    fgets(buffer, BUFFER_SIZE, stdin);
-
-    // Hapus karakter newline dari username
-    buffer[strcspn(buffer, "\n")] = 0;
+    fgets(username, 50, stdin);
+    username[strcspn(username, "\n")] = 0; // Hapus karakter newline
 
     // Kirim username ke server
-    send(sock, buffer, strlen(buffer), 0);
+    send(sock, username, strlen(username), 0);
 
-    printf("Welcome, %s! You can now start chatting.\n", buffer);
+    printf("Welcome, %s..! You can now start chatting.\n", username);
 
     while (1) {
         FD_ZERO(&read_fds);

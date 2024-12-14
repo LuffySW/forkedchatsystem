@@ -11,19 +11,44 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
 
-#define PORT 8001
+#define PORT 8080
 #define BUFFER_SIZE 1024
 #define MAX_CLIENTS 10
+#define LOG_BUFFER_SIZE 2048 // Increase log buffer size
 
 int client_sockets[MAX_CLIENTS] = {0};
 int pipe_fd[2]; // Pipe for inter-process communication
 
+void log_message(const char *level, const char *message) {
+    FILE *log_file = fopen("chat_log.txt", "a");
+    if (log_file == NULL) {
+        perror("Failed to open log file");
+        return;
+    }
+
+    time_t now = time(NULL);
+    char *timestamp = ctime(&now);
+    timestamp[strlen(timestamp) - 1] = '\0'; // Remove newline character
+
+    fprintf(log_file, "[%s] [%s] %s\n", timestamp, level, message);
+    fclose(log_file);
+}
+
 // Broadcast message to all clients except the sender
 void broadcast_message(int sender_fd, char *message) {
+    char log_buffer[LOG_BUFFER_SIZE];
+    snprintf(log_buffer, LOG_BUFFER_SIZE, "Broadcasting message from client %d: %.900s", sender_fd, message);
+    log_message("INFO", log_buffer);
+
     for (int i = 0; i < MAX_CLIENTS; i++) {
         if (client_sockets[i] != 0 && client_sockets[i] != sender_fd) {
-            send(client_sockets[i], message, strlen(message), 0);
+            if (send(client_sockets[i], message, strlen(message), 0) == -1) {
+                perror("Broadcast send error");
+                snprintf(log_buffer, LOG_BUFFER_SIZE, "Broadcast send error to client %d", client_sockets[i]);
+                log_message("ERROR", log_buffer);
+            }
         }
     }
 }
@@ -33,6 +58,22 @@ void handle_client(int client_socket) {
     char buffer[BUFFER_SIZE];
     int valread;
 
+    // Menerima username dari klien
+    valread = read(client_socket, buffer, BUFFER_SIZE);
+    if (valread <= 0) {
+        perror("Failed to receive username");
+        close(client_socket);
+        return;
+    }
+    buffer[valread] = '\0'; // Null-terminate the username
+    char username[50];
+    strncpy(username, buffer, 50);
+
+    printf("Client connected with username: %s\n", username);
+    char log_buffer[LOG_BUFFER_SIZE];
+    snprintf(log_buffer, LOG_BUFFER_SIZE, "Client connected with username: %s, socket fd: %d", username, client_socket);
+    log_message("INFO", log_buffer);
+
     while (1) {
         memset(buffer, 0, BUFFER_SIZE);
         valread = read(client_socket, buffer, BUFFER_SIZE);
@@ -40,9 +81,12 @@ void handle_client(int client_socket) {
         // Check for disconnection or error
         if (valread <= 0) {
             if (valread == 0) {
-                printf("Client disconnected, socket fd: %d\n", client_socket);
+                printf("Client %s disconnected, socket fd: %d\n", username, client_socket);
+                snprintf(log_buffer, LOG_BUFFER_SIZE, "Client %s disconnected, socket fd: %d", username, client_socket);
+                log_message("INFO", log_buffer);
             } else {
                 perror("Read error");
+                log_message("ERROR", "Read error");
             }
             close(client_socket);
 
@@ -58,7 +102,9 @@ void handle_client(int client_socket) {
         }
 
         buffer[valread] = '\0'; // Null-terminate the message
-        printf("Message from client %d: %s\n", client_socket, buffer);
+        printf("Message from client %s: %s\n", username, buffer);
+        snprintf(log_buffer, LOG_BUFFER_SIZE, "Message from client %s: %.900s", username, buffer);
+        log_message("INFO", log_buffer);
 
         // Lock the pipe before writing to it
         flock(pipe_fd[1], LOCK_EX);
@@ -116,7 +162,8 @@ int main() {
         exit(EXIT_FAILURE);
     }
 
-    printf("Server is listening on port %d\n", PORT);
+    printf("Server is listening on port : %d\n", PORT);
+    log_message("INFO", "Server started listening");
 
     fd_set readfds;
     int max_sd;
@@ -166,6 +213,9 @@ int main() {
             }
 
             printf("New client connected, socket fd: %d\n", new_socket);
+            char log_buffer[LOG_BUFFER_SIZE];
+            snprintf(log_buffer, LOG_BUFFER_SIZE, "New client connected, socket fd: %d", new_socket);
+            log_message("INFO", log_buffer);
 
             // Add new socket to array of sockets
             for (int i = 0; i < MAX_CLIENTS; i++) {
@@ -217,8 +267,12 @@ int main() {
                     // Handle disconnection
                     if (valread == 0) {
                         printf("Client disconnected, socket fd: %d\n", sd);
+                        char log_buffer[LOG_BUFFER_SIZE];
+                        snprintf(log_buffer, LOG_BUFFER_SIZE, "Client disconnected, socket fd: %d", sd);
+                        log_message("INFO", log_buffer);
                     } else {
                         perror("Read error");
+                        log_message("ERROR", "Read error");
                     }
                     close(sd);
                     FD_CLR(sd, &readfds); // Remove from select set
@@ -226,6 +280,9 @@ int main() {
                 } else {
                     buffer[valread] = '\0'; // Null-terminate the message
                     printf("Message from client %d: %s\n", sd, buffer);
+                    char log_buffer[LOG_BUFFER_SIZE];
+                    snprintf(log_buffer, LOG_BUFFER_SIZE, "Message from client %d: %.900s", sd, buffer);
+                    log_message("INFO", log_buffer);
                 }
             }
         }
