@@ -14,135 +14,140 @@
 #define PORT 8080
 #define BUFFER_SIZE 1024
 
+// Fungsi untuk menghubungkan client ke server
 void connect_to_server(const char *username, int batch_mode) {
     int sock = 0;
     struct sockaddr_in serv_addr;
     char buffer[BUFFER_SIZE] = {0};
     struct timespec start, end;
 
+    // Membuat socket
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
-        perror("Socket creation error");
+        perror("Gagal membuat socket");
         return;
     }
 
     if (strlen(username) >= BUFFER_SIZE) {
-        printf("Username is too long. Maximum length is %d characters.\n", BUFFER_SIZE - 1);
+        printf("Username terlalu panjang. Maksimum %d karakter.\n", BUFFER_SIZE - 1);
         return;
     }
 
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(PORT);
 
+    // Konversi alamat IP ke format biner
     if (inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) <= 0) {
-        perror("Invalid address/ Address not supported");
+        perror("Alamat tidak valid atau tidak didukung");
         return;
     }
 
-    // Record start time
+    // Mencatat waktu sebelum mencoba koneksi
     clock_gettime(CLOCK_MONOTONIC, &start);
 
+    // Menghubungkan ke server
     if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-        perror("Connection Failed");
+        perror("Gagal menghubungkan ke server");
         return;
     }
 
-    // Record end time
+    // Mencatat waktu setelah koneksi berhasil
     clock_gettime(CLOCK_MONOTONIC, &end);
     double response_time = (end.tv_sec - start.tv_sec) * 1e3 + (end.tv_nsec - start.tv_nsec) / 1e6;
-    printf("Client %s connected in %.2f ms\n", username, response_time);
+    printf("Client %s terhubung dalam waktu %.2f ms\n", username, response_time);
 
-    // Send username to server
+    // Mengirimkan username ke server
     send(sock, username, strlen(username), 0);
 
     fd_set readfds;
     int max_sd = sock;
 
-    // Chat loop
+    // Loop utama untuk chat
     while (1) {
         FD_ZERO(&readfds);
         FD_SET(sock, &readfds);
         if (!batch_mode) {
-            FD_SET(STDIN_FILENO, &readfds);
+            FD_SET(STDIN_FILENO, &readfds); // Tambahkan input keyboard
         }
 
-        // Always show the prompt at the beginning of each iteration if not in batch mode
+        // Menampilkan prompt jika tidak dalam mode batch
         if (!batch_mode) {
-            printf("Enter message (type 'exit' to disconnect): ");
+            printf("Ketik pesan (ketik 'exit' untuk keluar): ");
             fflush(stdout);
         }
 
         int activity = select(max_sd + 1, &readfds, NULL, NULL, NULL);
 
         if (activity < 0) {
-            perror("Select error");
+            perror("Error pada fungsi select");
             break;
         }
 
-        // Check if there is data from the server
+        // Jika ada data dari server
         if (FD_ISSET(sock, &readfds)) {
             memset(buffer, 0, BUFFER_SIZE);
             int bytes_received = read(sock, buffer, BUFFER_SIZE);
             if (bytes_received <= 0) {
                 if (bytes_received == 0) {
-                    printf("Server closed the connection.\n");
+                    printf("Server menutup koneksi.\n");
                 } else {
-                    perror("Failed to receive message from server");
+                    perror("Gagal menerima pesan dari server");
                 }
                 break;
             }
-            printf("\nServer reply: %s\n", buffer);
+            printf("\nPesan dari server: %s\n", buffer);
         }
 
-        // Check if there is input from the user
+        // Jika ada input dari pengguna
         if (!batch_mode && FD_ISSET(STDIN_FILENO, &readfds)) {
             if (fgets(buffer, BUFFER_SIZE, stdin) == NULL) {
                 if (feof(stdin)) {
-                    printf("End of input detected. Disconnecting...\n");
+                    printf("Input berakhir. Memutus koneksi...\n");
                     break;
                 } else {
-                    perror("Error reading input");
+                    perror("Error membaca input");
                     break;
                 }
             }
 
-            // Remove newline character
+            // Menghapus karakter newline
             buffer[strcspn(buffer, "\n")] = '\0';
 
             if (strlen(buffer) == 0) {
-                printf("Message cannot be empty.\n");
+                printf("Pesan tidak boleh kosong.\n");
                 continue;
             } else if (strlen(buffer) >= BUFFER_SIZE) {
-                printf("Message is too long. Maximum length is %d characters.\n", BUFFER_SIZE - 1);
+                printf("Pesan terlalu panjang. Maksimum %d karakter.\n", BUFFER_SIZE - 1);
                 continue;
             }
 
-            // Check if the user wants to exit
+            // Jika pengguna mengetik 'exit', putus koneksi
             if (strcmp(buffer, "exit") == 0) {
-                printf("Disconnecting...\n");
+                printf("Memutus koneksi...\n");
                 break;
             }
 
-            // Send the message to the server
+            // Mengirimkan pesan ke server
             if (send(sock, buffer, strlen(buffer), 0) <= 0) {
-                perror("Failed to send message");
+                perror("Gagal mengirim pesan");
                 break;
             }
         }
     }
 
+    // Memutus koneksi ke server
     shutdown(sock, SHUT_RDWR);
     close(sock);
 }
 
 int main(int argc, char const *argv[]) {
     if (argc < 2) {
-        printf("Usage: %s <username> [batch]\n", argv[0]);
+        printf("Penggunaan: %s <username> [batch]\n", argv[0]);
         return -1;
     }
 
     int batch_mode = 0;
     if (argc == 3 && strcmp(argv[2], "batch") == 0) {
-        batch_mode = 1;
+        batch_mode = 1; // Aktifkan mode batch jika ada argumen "batch"
     }
 
     connect_to_server(argv[1], batch_mode);

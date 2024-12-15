@@ -23,35 +23,50 @@ typedef struct {
     char message[BUFFER_SIZE];
 } PipeMessage;
 
+// Struktur antrean klien
 typedef struct {
     int client_socket;
     struct sockaddr_in client_address;
     char username[BUFFER_SIZE];
 } ClientQueueItem;
 
+// Variabel untuk manajemen antrean klien
 ClientQueueItem client_queue[MAX_CLIENTS];
 int queue_front = 0;
 int queue_rear = -1;
 int queue_size = 0;
 
-int client_pipes[MAX_CLIENTS][2]; // Pipe untuk komunikasi antar-proses
+// Variabel untuk komunikasi klien
+int client_pipes[MAX_CLIENTS][2]; 
 int client_count = 0;
-int client_sockets[MAX_CLIENTS]; // Track active client sockets
-char client_usernames[MAX_CLIENTS][BUFFER_SIZE]; // Track client usernames
+int client_sockets[MAX_CLIENTS]; // Menyimpan socket klien aktif
+char client_usernames[MAX_CLIENTS][BUFFER_SIZE]; // Menyimpan nama pengguna klien
 
+// Fungsi untuk mencatat pesan ke log
 void log_message(const char *level, const char *message) {
     FILE *log_file = fopen(LOG_FILE, "a");
     if (log_file == NULL) {
-        perror("Failed to open log file");
+        perror("Gagal membuka file log");
         return;
     }
-    fprintf(log_file, "[%s] %s\n", level, message);
+
+    // Mendapatkan waktu saat ini
+    time_t now = time(NULL);
+    struct tm *t = localtime(&now);
+
+    // Format waktu
+    char time_str[20];
+    strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M:%S", t);
+
+    // Menulis pesan log dengan timestamp
+    fprintf(log_file, "[%s] [%s] %s", time_str, level, message);
     fclose(log_file);
 }
 
+// Menambahkan klien baru ke antrean
 void enqueue_client(int client_socket, struct sockaddr_in client_address) {
     if (queue_size == MAX_CLIENTS) {
-        printf("Client queue is full. Cannot accept more clients.\n");
+        printf("Antrean klien penuh. Tidak dapat menerima lebih banyak klien.\n");
         return;
     }
     queue_rear = (queue_rear + 1) % MAX_CLIENTS;
@@ -60,6 +75,7 @@ void enqueue_client(int client_socket, struct sockaddr_in client_address) {
     queue_size++;
 }
 
+// Mengambil klien dari antrean
 ClientQueueItem dequeue_client() {
     ClientQueueItem item = client_queue[queue_front];
     queue_front = (queue_front + 1) % MAX_CLIENTS;
@@ -67,14 +83,17 @@ ClientQueueItem dequeue_client() {
     return item;
 }
 
+// Mengecek apakah antrean kosong
 int is_queue_empty() {
     return queue_size == 0;
 }
 
+// Membersihkan proses zombie
 void clean_up_zombie_processes(int sig) {
     while (waitpid(-1, NULL, WNOHANG) > 0);
 }
 
+// Mengirim pesan ke semua klien kecuali pengirim
 void send_to_all_clients(const char *message, int exclude_fd) {
     for (int i = 0; i < MAX_CLIENTS; i++) {
         if (client_sockets[i] != 0 && client_sockets[i] != exclude_fd) {
@@ -88,37 +107,38 @@ int main() {
     struct sockaddr_in address;
     int addrlen = sizeof(address);
 
-    // Create socket file descriptor
+    // Membuat socket server
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0) {
-        perror("Socket failed");
+        perror("Pembuatan socket gagal");
         exit(EXIT_FAILURE);
     }
 
     int opt = 1;
     if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt))) {
-        perror("Setsockopt failed");
+        perror("Pengaturan socket gagal");
         exit(EXIT_FAILURE);
     }
 
+    // Konfigurasi alamat server
     address.sin_family = AF_INET;
     address.sin_addr.s_addr = INADDR_ANY;
     address.sin_port = htons(PORT);
 
-    // Bind the socket
+    // Binding socket ke alamat dan port
     if (bind(server_fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
-        perror("Bind failed");
+        perror("Bind gagal");
         exit(EXIT_FAILURE);
     }
 
-    // Listen for incoming connections
+    // Server mulai mendengarkan koneksi
     if (listen(server_fd, 3) < 0) {
-        perror("Listen failed");
+        perror("Listen gagal");
         exit(EXIT_FAILURE);
     }
 
-    printf("Server is running on port %d\n", PORT);
+    printf("Server berjalan di port %d\n", PORT);
 
-    // Handle zombie processes
+    // Penanganan proses zombie
     signal(SIGCHLD, clean_up_zombie_processes);
 
     fd_set readfds;
@@ -128,7 +148,7 @@ int main() {
         FD_SET(server_fd, &readfds);
         int max_sd = server_fd;
 
-        // Add client sockets to set
+        // Menambahkan socket klien ke set
         for (int i = 0; i < client_count; i++) {
             int sd = client_sockets[i];
             if (sd > 0) {
@@ -142,89 +162,75 @@ int main() {
         int activity = select(max_sd + 1, &readfds, NULL, NULL, NULL);
 
         if (activity < 0 && errno != EINTR) {
-            perror("Select error");
+            perror("Kesalahan pada select");
         }
 
-        // If something happened on the master socket, then it's an incoming connection
+        // Koneksi baru diterima
         if (FD_ISSET(server_fd, &readfds)) {
             if ((new_socket = accept(server_fd, (struct sockaddr *)&address, (socklen_t *)&addrlen)) < 0) {
-                perror("Accept error");
+                perror("Kesalahan pada accept");
                 exit(EXIT_FAILURE);
             }
-
-            // Enqueue the new client
             enqueue_client(new_socket, address);
         }
 
-        // Process clients in the queue
+        // Memproses klien dalam antrean
         while (!is_queue_empty()) {
             ClientQueueItem client = dequeue_client();
             int client_socket = client.client_socket;
 
-            // Receive username from client
+            // Menerima nama pengguna
             char username[BUFFER_SIZE];
             int bytes_received = read(client_socket, username, BUFFER_SIZE);
             if (bytes_received <= 0) {
-                perror("Failed to receive username");
+                perror("Gagal menerima nama pengguna");
                 close(client_socket);
                 continue;
             }
             username[bytes_received] = '\0';
 
-            // Add new socket to array of sockets
+            // Menambahkan klien baru
             for (int i = 0; i < MAX_CLIENTS; i++) {
                 if (client_sockets[i] == 0) {
                     client_sockets[i] = client_socket;
                     strncpy(client_usernames[i], username, BUFFER_SIZE);
                     client_count++;
-                    printf("Client %s connected from ip %s, port %d\n", username, inet_ntoa(client.client_address.sin_addr), ntohs(client.client_address.sin_port));
+                    printf("Klien %s terhubung dari IP %s, port %d\n", username, inet_ntoa(client.client_address.sin_addr), ntohs(client.client_address.sin_port));
 
-                    // Notify all clients about the new connection
                     char join_message[BUFFER_SIZE];
-                    snprintf(join_message, BUFFER_SIZE, "[Server]: %s has joined the chat.\n", username);
+                    snprintf(join_message, BUFFER_SIZE, "[Server]: %s telah bergabung dalam chat.\n", username);
                     send_to_all_clients(join_message, client_socket);
-
-                    // Log the join message
                     log_message("INFO", join_message);
                     break;
                 }
             }
         }
 
-        // Handle IO operations for each client
+        // Memproses pesan dari klien
         for (int i = 0; i < MAX_CLIENTS; i++) {
             int sd = client_sockets[i];
-
             if (FD_ISSET(sd, &readfds)) {
                 char buffer[BUFFER_SIZE];
                 int valread = read(sd, buffer, BUFFER_SIZE);
                 if (valread == 0) {
-                    // Client disconnected
                     getpeername(sd, (struct sockaddr *)&address, (socklen_t *)&addrlen);
-                    printf("Host %s disconnected, ip %s, port %d\n", client_usernames[i], inet_ntoa(address.sin_addr), ntohs(address.sin_port));
+                    printf("Klien %s terputus, IP %s, port %d\n", client_usernames[i], inet_ntoa(address.sin_addr), ntohs(address.sin_port));
 
-                    // Notify all clients about the disconnection
                     char leave_message[BUFFER_SIZE];
-                    snprintf(leave_message, BUFFER_SIZE, "[Server]: %s has left the chat.\n", client_usernames[i]);
+                    snprintf(leave_message, BUFFER_SIZE, "[Server]: %s telah meninggalkan chat.\n", client_usernames[i]);
                     send_to_all_clients(leave_message, sd);
-
-                    // Log the leave message
                     log_message("INFO", leave_message);
 
                     close(sd);
                     client_sockets[i] = 0;
                     client_count--;
                 } else {
-                    // Echo back the message that came in
                     buffer[valread] = '\0';
                     printf("%s: %s\n", client_usernames[i], buffer);
 
-                    // Send the message to all clients
                     char message[BUFFER_SIZE];
                     snprintf(message, BUFFER_SIZE, "%s: %s\n", client_usernames[i], buffer);
                     send_to_all_clients(message, sd);
-
-                    // Log the message
                     log_message("CHAT", message);
                 }
             }

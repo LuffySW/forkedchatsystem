@@ -1,8 +1,21 @@
-[INFO] [Server]: luffy has joined the chat.
-
 [INFO] [Server]: adill has joined the chat.
+[CHAT] adill: hallo
+[INFO] [Server]: lutfi has joined the chat.
+[CHAT] lutfi: hallo
+[CHAT] lutfi: hai
+[INFO] [Server]: akbar has joined the chat.
+[CHAT] akbar: halloooo
+[INFO] [Server]: akbar has left the chat.
+[INFO] [Server]: lutfi has left the chat.
+[INFO] [Server]: adill has left the chat.
+[2024-12-15 10:42:46] [INFO] [Server]: adil has joined the chat.
 
-[CHAT] luffy: hello
+[2024-12-15 10:42:48] [CHAT] adil: hallo
 
-[CHAT] adill: oyy
-
+[2024-12-15 10:44:10] [INFO] [Server]: adil has joined the chat.
+[2024-12-15 10:44:13] [CHAT] adil: aaaa
+[2024-12-15 10:44:15] [CHAT] adil: aaa
+[2024-12-15 10:44:16] [CHAT] adil: aaa
+[2024-12-15 10:44:17] [CHAT] adil: aa
+[2024-12-15 10:44:17] [CHAT] adil: aa
+[2024-12-15 10:44:25] [INFO] [Server]: adil has left the chat.
