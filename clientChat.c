@@ -13,6 +13,22 @@
 
 #define PORT 8080
 #define BUFFER_SIZE 1024
+#define MAX_USERNAME_LENGTH 50
+
+// Fungsi untuk validasi username
+int validate_username(const char *username) {
+    if (strlen(username) == 0 || strlen(username) > MAX_USERNAME_LENGTH) {
+        printf("Username tidak valid. Harus antara 1-%d karakter.\n", MAX_USERNAME_LENGTH);
+        return 0;
+    }
+    for (size_t i = 0; i < strlen(username); i++) {
+        if (!isalnum(username[i]) && username[i] != '_') {
+            printf("Username hanya boleh mengandung karakter alfanumerik atau '_'.\n");
+            return 0;
+        }
+    }
+    return 1;
+}
 
 // Fungsi untuk menghubungkan client ke server
 void connect_to_server(const char *username, int batch_mode) {
@@ -27,17 +43,13 @@ void connect_to_server(const char *username, int batch_mode) {
         return;
     }
 
-    if (strlen(username) >= BUFFER_SIZE) {
-        printf("Username terlalu panjang. Maksimum %d karakter.\n", BUFFER_SIZE - 1);
-        return;
-    }
-
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_port = htons(PORT);
 
     // Konversi alamat IP ke format biner
     if (inet_pton(AF_INET, "127.0.0.1", &serv_addr.sin_addr) <= 0) {
         perror("Alamat tidak valid atau tidak didukung");
+        close(sock);
         return;
     }
 
@@ -47,6 +59,7 @@ void connect_to_server(const char *username, int batch_mode) {
     // Menghubungkan ke server
     if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
         perror("Gagal menghubungkan ke server");
+        close(sock);
         return;
     }
 
@@ -55,8 +68,14 @@ void connect_to_server(const char *username, int batch_mode) {
     double response_time = (end.tv_sec - start.tv_sec) * 1e3 + (end.tv_nsec - start.tv_nsec) / 1e6;
     printf("Client %s terhubung dalam waktu %.2f ms\n", username, response_time);
 
-    // Mengirimkan username ke server
-    send(sock, username, strlen(username), 0);
+    // Mengirimkan username ke server dalam format yang sesuai
+    char username_message[BUFFER_SIZE];
+    snprintf(username_message, sizeof(username_message), "USERNAME:%s", username);
+    if (send(sock, username_message, strlen(username_message), 0) <= 0) {
+        perror("Gagal mengirimkan username ke server");
+        close(sock);
+        return;
+    }
 
     fd_set readfds;
     int max_sd = sock;
@@ -142,6 +161,11 @@ void connect_to_server(const char *username, int batch_mode) {
 int main(int argc, char const *argv[]) {
     if (argc < 2) {
         printf("Penggunaan: %s <username> [batch]\n", argv[0]);
+        return -1;
+    }
+
+    // Validasi username
+    if (!validate_username(argv[1])) {
         return -1;
     }
 

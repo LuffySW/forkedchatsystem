@@ -1,0 +1,36 @@
+
+[2024-12-15 18:45:57] [INFO] Klien luffy1 keluar dari chat.
+[2024-12-15 18:45:59] [INFO] Klien luffy1 terhubung.
+[2024-12-15 18:46:01] [CHAT] luffy1: test
+[2024-12-15 18:46:16] [INFO] Klien ufi terhubung.
+[2024-12-15 18:46:19] [INFO] Klien ufi keluar dari chat.
+[2024-12-15 18:46:20] [INFO] Klien Client1 terhubung.
+[2024-12-15 18:46:20] [INFO] Klien Client2 terhubung.
+[2024-12-15 18:46:20] [INFO] Klien Client3 terhubung.
+[2024-12-15 18:46:20] [INFO] Klien Client4 terhubung.
+[2024-12-15 18:46:20] [INFO] Klien Client5 terhubung.
+[2024-12-15 18:46:20] [INFO] Klien Client6 terhubung.
+[2024-12-15 18:46:21] [INFO] Klien Client7 terhubung.
+[2024-12-15 18:46:21] [INFO] Klien Client8 terhubung.
+[2024-12-15 18:46:21] [INFO] Klien Client9 terhubung.
+[2024-12-15 18:46:21] [INFO] Klien Client10 terhubung.
+[2024-12-15 18:46:21] [INFO] Klien Client11 terhubung.
+[2024-12-15 18:46:21] [INFO] Klien Client12 terhubung.
+[2024-12-15 18:46:21] [INFO] Klien Client13 terhubung.
+[2024-12-15 18:46:21] [INFO] Klien Client14 terhubung.
+[2024-12-15 18:46:21] [INFO] Klien Client15 terhubung.
+[2024-12-15 18:46:21] [INFO] Klien Client16 terhubung.
+[2024-12-15 18:46:22] [INFO] Klien Client17 terhubung.
+[2024-12-15 18:46:22] [INFO] Klien Client18 terhubung.
+[2024-12-15 18:46:22] [INFO] Klien Client19 terhubung.
+[2024-12-15 18:46:22] [INFO] Klien Client20 terhubung.
+[2024-12-15 18:46:22] [INFO] Klien Client21 terhubung.
+[2024-12-15 18:46:22] [INFO] Klien Client22 terhubung.
+[2024-12-15 18:46:22] [INFO] Klien Client23 terhubung.
+[2024-12-15 18:46:22] [INFO] Klien Client24 terhubung.
+[2024-12-15 18:46:22] [INFO] Klien Client25 terhubung.
+[2024-12-15 18:46:23] [INFO] Klien Client26 terhubung.
+[2024-12-15 18:46:23] [INFO] Klien Client27 terhubung.
+[2024-12-15 18:46:23] [INFO] Klien Client28 terhubung.
+[2024-12-15 18:46:23] [INFO] Klien Client29 terhubung.
+[2024-12-15 18:46:38] [CHAT] luffy1: test

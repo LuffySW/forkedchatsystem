@@ -1,0 +1,4 @@
+/home/luffysw/TugasBesarWithFadil/forkedchatsystem/build/CMakeFiles/serverChat.dir
+/home/luffysw/TugasBesarWithFadil/forkedchatsystem/build/CMakeFiles/clientChat.dir
+/home/luffysw/TugasBesarWithFadil/forkedchatsystem/build/CMakeFiles/edit_cache.dir
+/home/luffysw/TugasBesarWithFadil/forkedchatsystem/build/CMakeFiles/rebuild_cache.dir
