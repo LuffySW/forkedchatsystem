@@ -1,6 +1,6 @@
 # Server Multi-Client Chat Server Broadcast
 
-Anggota:
+### Anggota:
 1. Fadilah Akbar : 231524041
 2. Luthfi Satrio Wicaksono  : 231524049
 
@@ -62,6 +62,11 @@ Program ini terdiri dari dua komponen utama:
 2. Kompilasi program server:
    ```bash
    gcc -o server chatBroadcast.c
-3.  Kompilasi program client:
+3. Kompilasi program client:
    ```bash
    gcc -o client clientChat.c
+4. Jalankan hasil kompilasi tersebut
+    ```bash
+   ./serverchat
+    ./client [username]
+5. Inputkan pesan yang akan dikirim 
